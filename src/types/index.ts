@@ -1,0 +1,69 @@
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  avatar?: string;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  specialization: string[];
+}
+
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+export type TicketCategory = 
+  | 'hardware'
+  | 'software'
+  | 'network'
+  | 'email'
+  | 'security'
+  | 'access'
+  | 'other';
+
+export interface Comment {
+  id: string;
+  ticketId: string;
+  author: User | Agent;
+  content: string;
+  createdAt: string;
+  isInternal: boolean;
+}
+
+export interface Ticket {
+  id: string;
+  subject: string;
+  description: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  category: TicketCategory;
+  createdAt: string;
+  updatedAt: string;
+  assignedTo?: Agent;
+  createdBy: User;
+  comments: Comment[];
+}
+
+export interface KnowledgeArticle {
+  id: string;
+  title: string;
+  content: string;
+  category: TicketCategory;
+  tags: string[];
+  views: number;
+  helpful: number;
+  createdAt: string;
+}
+
+export interface DashboardStats {
+  openTickets: number;
+  inProgressTickets: number;
+  resolvedToday: number;
+  avgResponseTime: string;
+  criticalTickets: number;
+  totalTickets: number;
+}
