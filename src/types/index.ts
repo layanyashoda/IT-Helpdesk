@@ -16,7 +16,7 @@ export interface Agent {
 
 export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TicketCategory = 
+export type TicketCategory =
   | 'hardware'
   | 'software'
   | 'network'
@@ -24,6 +24,25 @@ export type TicketCategory =
   | 'security'
   | 'access'
   | 'other';
+
+export type ActivityType =
+  | 'created'
+  | 'status_changed'
+  | 'priority_changed'
+  | 'assigned'
+  | 'comment_added'
+  | 'resolved'
+  | 'reopened';
+
+export interface ActivityEntry {
+  id: string;
+  type: ActivityType;
+  timestamp: string;
+  user: string;
+  details?: string;
+  oldValue?: string;
+  newValue?: string;
+}
 
 export interface Comment {
   id: string;
@@ -46,6 +65,7 @@ export interface Ticket {
   assignedTo?: Agent;
   createdBy: User;
   comments: Comment[];
+  activities?: ActivityEntry[];
 }
 
 export interface KnowledgeArticle {
@@ -67,3 +87,4 @@ export interface DashboardStats {
   criticalTickets: number;
   totalTickets: number;
 }
+

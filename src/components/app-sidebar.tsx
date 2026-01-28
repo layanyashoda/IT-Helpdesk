@@ -12,6 +12,7 @@ import {
   Settings,
   HelpCircle,
   Search,
+  BarChart3,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -53,6 +54,11 @@ const data = {
       title: "Knowledge Base",
       url: "/knowledge",
       icon: BookOpen,
+    },
+    {
+      title: "Analytics",
+      url: "/analytics",
+      icon: BarChart3,
     },
   ],
   navSecondary: [

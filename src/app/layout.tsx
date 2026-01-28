@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { CommandPalette } from "@/components/command-palette";
 
 export const metadata: Metadata = {
   title: "IT Help Desk",
@@ -37,8 +38,10 @@ export default function RootLayout({
               </div>
             </SidebarInset>
           </SidebarProvider>
+          <CommandPalette />
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
