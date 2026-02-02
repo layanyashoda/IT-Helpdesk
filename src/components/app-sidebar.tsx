@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Search,
   BarChart3,
+  UserCheck,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -44,6 +45,11 @@ const data = {
       title: "Tickets",
       url: "/tickets",
       icon: Ticket,
+    },
+    {
+      title: "Assigned to Me",
+      url: "/my-tickets",
+      icon: UserCheck,
     },
     {
       title: "Create Ticket",

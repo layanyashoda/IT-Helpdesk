@@ -53,6 +53,14 @@ export interface Comment {
   isInternal: boolean;
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string; // Base64 data URI for this prototype
+}
+
 export interface Ticket {
   id: string;
   subject: string;
@@ -66,6 +74,7 @@ export interface Ticket {
   createdBy: User;
   comments: Comment[];
   activities?: ActivityEntry[];
+  attachments?: Attachment[];
 }
 
 export interface KnowledgeArticle {

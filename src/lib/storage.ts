@@ -1,4 +1,4 @@
-import { Ticket } from '@/types';
+import { Ticket, ActivityEntry } from '@/types';
 import { mockTickets } from './mock-data';
 
 const TICKETS_KEY = 'helpdesk_tickets';
@@ -36,6 +36,28 @@ export function updateTicket(ticketId: string, updates: Partial<Ticket>): Ticket
     const index = tickets.findIndex(t => t.id === ticketId);
     if (index !== -1) {
         tickets[index] = { ...tickets[index], ...updates, updatedAt: new Date().toISOString() };
+        saveTickets(tickets);
+    }
+    return tickets;
+}
+
+export function logActivity(ticketId: string, activity: Omit<ActivityEntry, "id" | "timestamp">): Ticket[] {
+    const tickets = getStoredTickets();
+    const index = tickets.findIndex(t => t.id === ticketId);
+    if (index !== -1) {
+        const newActivity: ActivityEntry = {
+            id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: new Date().toISOString(),
+            ...activity
+        };
+
+        const currentActivities = tickets[index].activities || [];
+        tickets[index] = {
+            ...tickets[index],
+            activities: [newActivity, ...currentActivities],
+            updatedAt: new Date().toISOString()
+        };
+
         saveTickets(tickets);
     }
     return tickets;

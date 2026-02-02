@@ -10,7 +10,7 @@ import {
     LayoutGrid,
     List,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,12 +24,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TicketCard } from "@/components/tickets/ticket-card";
 import { TicketKanban } from "@/components/tickets/ticket-kanban";
 import { getStoredTickets, updateTicket } from "@/lib/storage";
-import { Ticket, TicketStatus, TicketPriority, TicketCategory } from "@/types";
+import { Ticket, TicketStatus } from "@/types";
 import { categoryLabels, statusLabels, priorityLabels } from "@/lib/mock-data";
+
+// Mock logged in user ID
+const CURRENT_AGENT_ID = 'agent-1';
 
 type ViewMode = "list" | "board";
 
-export default function TicketsPage() {
+export default function MyTicketsPage() {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -42,11 +45,14 @@ export default function TicketsPage() {
     useEffect(() => {
         const storedTickets = getStoredTickets();
         setTickets(storedTickets);
-        setFilteredTickets(storedTickets);
+        // Initial filter for assigned tickets
+        const myTickets = storedTickets.filter(t => t.assignedTo?.id === CURRENT_AGENT_ID);
+        setFilteredTickets(myTickets);
     }, []);
 
     useEffect(() => {
-        let result = tickets;
+        // Base filter: only assigned to me
+        let result = tickets.filter(t => t.assignedTo?.id === CURRENT_AGENT_ID);
 
         // Search filter
         if (searchQuery) {
@@ -98,9 +104,9 @@ export default function TicketsPage() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Tickets</h1>
+                    <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Assigned to Me</h1>
                     <p className="text-muted-foreground mt-1">
-                        Manage and track all support tickets
+                        Manage tickets assigned to your queue
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -212,10 +218,10 @@ export default function TicketsPage() {
                 </CardContent>
             </Card>
 
-            {/* Results Info (only show in list view or if needed) */}
+            {/* Results Info */}
             <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                    Showing {filteredTickets.length} of {tickets.length} tickets
+                    Showing {filteredTickets.length} tickets
                 </p>
             </div>
 
@@ -230,11 +236,9 @@ export default function TicketsPage() {
                         <Card className="flex items-center justify-center p-12">
                             <div className="text-center">
                                 <Filter className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                                <h3 className="font-semibold mb-1">No tickets found</h3>
+                                <h3 className="font-semibold mb-1">No tickets assigned to you</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    {activeFiltersCount > 0
-                                        ? "Try adjusting your filters"
-                                        : "Create your first ticket to get started"}
+                                    Great job! You have cleared your queue.
                                 </p>
                                 {activeFiltersCount > 0 && (
                                     <Button variant="link" onClick={clearFilters} className="mt-2">

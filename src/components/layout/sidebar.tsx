@@ -9,6 +9,7 @@ import {
     BookOpen,
     Settings,
     Headphones,
+    UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +22,7 @@ import {
 const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Tickets", href: "/tickets", icon: Ticket },
+    { name: "Assigned to Me", href: "/my-tickets", icon: UserCheck },
     { name: "Create Ticket", href: "/create", icon: PlusCircle },
     { name: "Knowledge Base", href: "/knowledge", icon: BookOpen },
 ];

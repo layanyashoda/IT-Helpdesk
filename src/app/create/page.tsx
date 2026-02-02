@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Paperclip, X, FileIcon, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { addTicket, generateTicketId } from "@/lib/storage";
-import { Ticket, TicketPriority, TicketCategory } from "@/types";
-import { categoryLabels, priorityLabels, mockUsers, mockAgents } from "@/lib/mock-data";
+import { Ticket, TicketPriority, TicketCategory, Attachment } from "@/types";
+import { categoryLabels, priorityLabels, mockUsers, mockAgents, mockKnowledgeArticles } from "@/lib/mock-data";
 
 export default function CreateTicketPage() {
     const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         subject: "",
@@ -29,6 +30,7 @@ export default function CreateTicketPage() {
         category: "" as TicketCategory | "",
         priority: "medium" as TicketPriority,
     });
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const validateForm = () => {
@@ -54,6 +56,53 @@ export default function CreateTicketPage() {
         return Object.keys(newErrors).length === 0;
     };
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const newAttachments: Attachment[] = [];
+        const maxSize = 5 * 1024 * 1024; // 5MB total limit for this prototype
+
+        let currentSize = attachments.reduce((acc, curr) => acc + curr.size, 0);
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            if (currentSize + file.size > maxSize) {
+                alert(`File "${file.name}" exceeds the total size limit of 5MB.`);
+                continue;
+            }
+
+            currentSize += file.size;
+
+            // Convert to Base64
+            const base64Url = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+            });
+
+            newAttachments.push({
+                id: `att-${Date.now()}-${i}`,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                url: base64Url,
+            });
+        }
+
+        setAttachments((prev) => [...prev, ...newAttachments]);
+
+        // Reset input so same file can be selected again if needed
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const removeAttachment = (id: string) => {
+        setAttachments((prev) => prev.filter((a) => a.id !== id));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -74,8 +123,9 @@ export default function CreateTicketPage() {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             createdBy: mockUsers[0], // Current user (mock)
-            assignedTo: undefined, // Auto-assignment could be added here
+            assignedTo: undefined,
             comments: [],
+            attachments: attachments,
         };
 
         addTicket(newTicket);
@@ -118,6 +168,51 @@ export default function CreateTicketPage() {
                             />
                             {errors.subject && (
                                 <p className="text-sm text-red-500">{errors.subject}</p>
+                            )}
+
+                            {/* Smart Deflection: Suggested Solutions */}
+                            {formData.subject.length > 3 && (
+                                (() => {
+                                    // Simple keyword matching logic
+                                    const keywords = formData.subject.toLowerCase().split(" ").filter(w => w.length > 3);
+                                    if (keywords.length === 0) return null;
+
+                                    const suggestions = mockKnowledgeArticles.filter(article => {
+                                        const title = article.title.toLowerCase();
+                                        const tags = article.tags.join(" ").toLowerCase();
+                                        return keywords.some(k => title.includes(k) || tags.includes(k));
+                                    }).slice(0, 3); // Take top 3
+
+                                    if (suggestions.length === 0) return null;
+
+                                    return (
+                                        <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 mt-2">
+                                            <CardContent className="p-3">
+                                                <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-300">
+                                                    <BookOpen className="h-4 w-4" />
+                                                    <h4 className="text-sm font-semibold">Suggested Solutions</h4>
+                                                </div>
+                                                <ul className="space-y-2">
+                                                    {suggestions.map(article => (
+                                                        <li key={article.id} className="text-sm">
+                                                            <a
+                                                                href="/knowledge"
+                                                                target="_blank"
+                                                                className="flex items-start gap-2 text-muted-foreground hover:text-primary transition-colors hover:underline"
+                                                            >
+                                                                <span className="shrink-0 mt-1">•</span>
+                                                                <span>{article.title}</span>
+                                                            </a>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                <p className="text-xs text-muted-foreground mt-2 pl-3 italic">
+                                                    Check these articles before submitting description helps!
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })()
                             )}
                         </div>
 
@@ -199,6 +294,61 @@ export default function CreateTicketPage() {
                             </p>
                         </div>
 
+                        {/* Attachments */}
+                        <div className="space-y-3">
+                            <Label>Attachments</Label>
+
+                            {/* File List */}
+                            {attachments.length > 0 && (
+                                <div className="grid gap-2 mb-3">
+                                    {attachments.map((file) => (
+                                        <div key={file.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/50 text-sm">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                <span className="truncate">{file.name}</span>
+                                                <span className="text-muted-foreground text-xs shrink-0">
+                                                    ({(file.size / 1024).toFixed(0)} KB)
+                                                </span>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6"
+                                                onClick={() => removeAttachment(file.id)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                    multiple
+                                    accept="image/*,application/pdf,.txt,.doc,.docx"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Paperclip className="h-4 w-4" />
+                                    Attach Files
+                                </Button>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Max size: 5MB total. Supported: Images, PDF, Text, Docs.
+                                </p>
+                            </div>
+                        </div>
+
                         {/* Submit Button */}
                         <div className="flex items-center justify-end gap-4">
                             <Link href="/">
@@ -235,7 +385,7 @@ export default function CreateTicketPage() {
                     <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                         <li>Include specific error messages or codes</li>
                         <li>Describe when the issue started</li>
-                        <li>Mention any recent changes to your system</li>
+                        <li>Attach screenshots of the error if possible</li>
                         <li>List the steps you&apos;ve already tried</li>
                     </ul>
                 </CardContent>

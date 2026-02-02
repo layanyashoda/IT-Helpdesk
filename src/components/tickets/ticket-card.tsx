@@ -7,8 +7,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PriorityIndicator } from "@/components/shared/priority-indicator";
 import { categoryLabels } from "@/lib/mock-data";
-import { Clock, User, Tag } from "lucide-react";
+import { Clock, User, Tag, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/utils";
+import { getSLAStatus } from "@/lib/sla";
 
 interface TicketCardProps {
     ticket: Ticket;
@@ -16,8 +17,8 @@ interface TicketCardProps {
 
 export function TicketCard({ ticket }: TicketCardProps) {
     return (
-        <Link href={`/tickets/${ticket.id}`}>
-            <Card className="group cursor-pointer transition-all hover:bg-muted/50">
+        <Link href={`/tickets/${ticket.id}`} className="block">
+            <Card className="group cursor-pointer transition-all hover:bg-muted/50 h-full">
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -39,8 +40,8 @@ export function TicketCard({ ticket }: TicketCardProps) {
                         {ticket.description}
                     </p>
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5">
                                 <Tag className="h-3.5 w-3.5" />
                                 <span>{categoryLabels[ticket.category]}</span>
@@ -51,22 +52,35 @@ export function TicketCard({ ticket }: TicketCardProps) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                            {ticket.assignedTo ? (
-                                <>
-                                    <Avatar className="h-5 w-5">
-                                        <AvatarFallback className="text-[10px] bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
-                                            {ticket.assignedTo.name.split(' ').map(n => n[0]).join('')}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <span>{ticket.assignedTo.name}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <User className="h-3.5 w-3.5" />
-                                    <span className="text-yellow-600 dark:text-yellow-400">Unassigned</span>
-                                </>
-                            )}
+                        <div className="flex items-center gap-3">
+                            {/* SLA Indicator */}
+                            {ticket.status !== 'resolved' && ticket.status !== 'closed' && (() => {
+                                const sla = getSLAStatus(ticket);
+                                return (
+                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium ${sla.bgColor} ${sla.color} ${sla.borderColor}`}>
+                                        <AlertCircle className="h-3 w-3" />
+                                        <span>{sla.label}</span>
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="flex items-center gap-1.5">
+                                {ticket.assignedTo ? (
+                                    <>
+                                        <Avatar className="h-5 w-5">
+                                            <AvatarFallback className="text-[10px] bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+                                                {ticket.assignedTo.name.split(' ').map(n => n[0]).join('')}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span>{ticket.assignedTo.name}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <User className="h-3.5 w-3.5" />
+                                        <span className="text-yellow-600 dark:text-yellow-400">Unassigned</span>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </CardContent>

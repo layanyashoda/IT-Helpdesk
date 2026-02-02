@@ -12,6 +12,8 @@ import {
     Send,
     Edit,
     AlertTriangle,
+    Lock,
+    Zap,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,18 +27,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PriorityIndicator } from "@/components/shared/priority-indicator";
-import { getTicketById, updateTicket, getStoredTickets } from "@/lib/storage";
+import { getTicketById, updateTicket, logActivity } from "@/lib/storage";
+import { ActivityFeed } from "@/components/tickets/activity-feed";
 import { Ticket, TicketStatus, Comment } from "@/types";
 import { categoryLabels, statusLabels, mockAgents } from "@/lib/mock-data";
 import { formatDate, formatDistanceToNow } from "@/lib/utils";
+import { calculateDueDate, getSLAStatus } from "@/lib/sla";
 
 export default function TicketDetailPage() {
     const params = useParams();
     const router = useRouter();
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [newComment, setNewComment] = useState("");
+    const [isInternal, setIsInternal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -49,7 +55,21 @@ export default function TicketDetailPage() {
 
     const handleStatusChange = (newStatus: TicketStatus) => {
         if (!ticket) return;
-        const updatedTickets = updateTicket(ticket.id, { status: newStatus });
+        const oldStatus = ticket.status;
+
+        // Update ticket
+        let updatedTickets = updateTicket(ticket.id, { status: newStatus });
+
+        // Log activity
+        if (oldStatus !== newStatus) {
+            updatedTickets = logActivity(ticket.id, {
+                type: 'status_changed',
+                user: 'Admin User', // Mock user
+                oldValue: statusLabels[oldStatus],
+                newValue: statusLabels[newStatus],
+            });
+        }
+
         const updated = updatedTickets.find((t) => t.id === ticket.id);
         if (updated) setTicket(updated);
     };
@@ -64,7 +84,7 @@ export default function TicketDetailPage() {
             author: mockAgents[0], // Current user (mock)
             content: newComment.trim(),
             createdAt: new Date().toISOString(),
-            isInternal: false,
+            isInternal: isInternal,
         };
 
         const updatedComments = [...ticket.comments, comment];
@@ -73,6 +93,7 @@ export default function TicketDetailPage() {
         if (updated) setTicket(updated);
 
         setNewComment("");
+        setIsInternal(false);
         setIsSubmitting(false);
     };
 
@@ -147,68 +168,69 @@ export default function TicketDetailPage() {
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2">
                                 <MessageSquare className="h-4 w-4" />
-                                Activity ({ticket.comments.length})
+                                Activity
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {ticket.comments.length > 0 ? (
-                                ticket.comments.map((comment) => (
-                                    <div
-                                        key={comment.id}
-                                        className={`flex gap-3 p-4 rounded-lg border ${comment.isInternal
-                                            ? "bg-muted/50 border-border"
-                                            : "bg-muted/30 border-transparent"
-                                            }`}
-                                    >
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarFallback className="text-xs">
-                                                {comment.author.name.split(" ").map((n) => n[0]).join("")}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-medium text-sm">{comment.author.name}</span>
-                                                {comment.isInternal && (
-                                                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded border border-border">
-                                                        Internal Note
-                                                    </span>
-                                                )}
-                                                <span className="text-xs text-muted-foreground">
-                                                    {formatDistanceToNow(comment.createdAt)}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-foreground whitespace-pre-wrap">
-                                                {comment.content}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                    <p>No comments yet</p>
-                                </div>
-                            )}
+                        <CardContent className="space-y-6">
+                            <ActivityFeed ticket={ticket} />
 
                             <Separator />
 
                             {/* Add Comment */}
                             <div className="space-y-3">
                                 <Textarea
-                                    placeholder="Add a comment..."
+                                    placeholder={isInternal ? "Add an internal note..." : "Reply to customer..."}
                                     value={newComment}
                                     onChange={(e) => setNewComment(e.target.value)}
                                     rows={3}
-                                    className="resize-none"
+                                    className={`resize-none ${isInternal ? "border-yellow-200 bg-yellow-50/50 dark:border-yellow-900 dark:bg-yellow-950/20" : ""}`}
                                 />
-                                <div className="flex justify-end">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <Toggle
+                                            pressed={isInternal}
+                                            onPressedChange={setIsInternal}
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-2 data-[state=on]:bg-yellow-100 data-[state=on]:text-yellow-900 dark:data-[state=on]:bg-yellow-900 dark:data-[state=on]:text-yellow-100"
+                                        >
+                                            <Lock className="h-3 w-3" />
+                                            Internal Note
+                                        </Toggle>
+
+                                        {/* Canned Responses Dropdown */}
+                                        <Select onValueChange={(val) => setNewComment((prev) => prev + (prev ? "\n" : "") + val)}>
+                                            <SelectTrigger className="h-9 w-[130px] text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <Zap className="h-3 w-3" />
+                                                    <span>Templates</span>
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Hi there, could you please provide more details about the error message you are seeing? Screenshots would be very helpful.">
+                                                    Need More Info
+                                                </SelectItem>
+                                                <SelectItem value="I have looked into this and the issue should be resolved now. Please verify and let me know if you need further assistance.">
+                                                    Issue Resolved
+                                                </SelectItem>
+                                                <SelectItem value="We are currently investigating this issue and will update you as soon as we have more information.">
+                                                    Investigating
+                                                </SelectItem>
+                                                <SelectItem value="To reset your password, please visit the self-service portal at https://reset.company.com.">
+                                                    Password Reset
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
                                     <Button
                                         onClick={handleAddComment}
                                         disabled={!newComment.trim() || isSubmitting}
                                         className="gap-2"
+                                        variant={isInternal ? "secondary" : "default"}
                                     >
                                         <Send className="h-4 w-4" />
-                                        Send Reply
+                                        {isInternal ? "Post Note" : "Send Reply"}
                                     </Button>
                                 </div>
                             </div>
@@ -239,7 +261,7 @@ export default function TicketDetailPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Ticket Details */}
+                    {/* Details */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Details</CardTitle>
@@ -268,8 +290,52 @@ export default function TicketDetailPage() {
                                     <p className="text-sm font-medium">{formatDate(ticket.updatedAt)}</p>
                                 </div>
                             </div>
+                            <Separator />
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Target Resolution</p>
+                                    <p className={`text-sm font-medium ${getSLAStatus(ticket).color}`}>
+                                        {formatDate(calculateDueDate(ticket).toISOString())}
+                                    </p>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
+
+                    {/* Attachments */}
+                    {ticket.attachments && ticket.attachments.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Attachments</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {ticket.attachments.map((file) => (
+                                    <a
+                                        key={file.id}
+                                        href={file.url}
+                                        download={file.name}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border group"
+                                    >
+                                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0 text-muted-foreground group-hover:text-foreground">
+                                            {file.type.startsWith('image/') ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={file.url} alt="" className="h-full w-full object-cover rounded" />
+                                            ) : (
+                                                <Tag className="h-4 w-4" />
+                                            )}
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <p className="text-sm font-medium truncate">{file.name}</p>
+                                            <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+                                        </div>
+                                    </a>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Requester */}
                     <Card>
