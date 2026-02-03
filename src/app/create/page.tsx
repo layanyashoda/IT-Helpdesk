@@ -29,6 +29,8 @@ export default function CreateTicketPage() {
         description: "",
         category: "" as TicketCategory | "",
         priority: "medium" as TicketPriority,
+        department: "",
+        requestType: "" as 'incident' | 'service_request' | 'problem' | 'change_request' | "",
     });
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,8 +50,16 @@ export default function CreateTicketPage() {
             newErrors.description = "Please provide more details (at least 20 characters)";
         }
 
+        if (!formData.department) {
+            newErrors.department = "Please select a department";
+        }
+
         if (!formData.category) {
             newErrors.category = "Please select a category";
+        }
+
+        if (!formData.requestType) {
+            newErrors.requestType = "Please select a request type";
         }
 
         setErrors(newErrors);
@@ -120,6 +130,8 @@ export default function CreateTicketPage() {
             status: "open",
             priority: formData.priority,
             category: formData.category as TicketCategory,
+            department: formData.department,
+            requestType: formData.requestType as 'incident' | 'service_request' | 'problem' | 'change_request',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             createdBy: mockUsers[0], // Current user (mock)
@@ -152,6 +164,117 @@ export default function CreateTicketPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Department, Category, Request Type Row */}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {/* Department */}
+                            <div className="space-y-2">
+                                <Label htmlFor="department">
+                                    Department <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={formData.department}
+                                    onValueChange={(value) =>
+                                        setFormData((prev) => ({ ...prev, department: value }))
+                                    }
+                                >
+                                    <SelectTrigger className={errors.department ? "border-red-500" : ""}>
+                                        <SelectValue placeholder="Select department" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {['Marketing', 'Sales', 'Engineering', 'HR', 'Finance', 'IT', 'Operations'].map((dept) => (
+                                            <SelectItem key={dept} value={dept}>
+                                                {dept}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.department && (
+                                    <p className="text-sm text-red-500">{errors.department}</p>
+                                )}
+                            </div>
+
+                            {/* Category */}
+                            <div className="space-y-2">
+                                <Label htmlFor="category">
+                                    Category <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={formData.category}
+                                    onValueChange={(value) =>
+                                        setFormData((prev) => ({ ...prev, category: value as TicketCategory }))
+                                    }
+                                >
+                                    <SelectTrigger className={errors.category ? "border-red-500" : ""}>
+                                        <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(categoryLabels).map(([value, label]) => (
+                                            <SelectItem key={value} value={value}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.category && (
+                                    <p className="text-sm text-red-500">{errors.category}</p>
+                                )}
+                            </div>
+
+                            {/* Request Type */}
+                            <div className="space-y-2">
+                                <Label htmlFor="requestType">
+                                    Request Type <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={formData.requestType}
+                                    onValueChange={(value) =>
+                                        setFormData((prev) => ({ ...prev, requestType: value as any }))
+                                    }
+                                >
+                                    <SelectTrigger className={errors.requestType ? "border-red-500" : ""}>
+                                        <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {[
+                                            { value: 'incident', label: 'Incident' },
+                                            { value: 'service_request', label: 'Service Request' },
+                                            { value: 'problem', label: 'Problem' },
+                                            { value: 'change_request', label: 'Change Request' },
+                                        ].map((type) => (
+                                            <SelectItem key={type.value} value={type.value}>
+                                                {type.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.requestType && (
+                                    <p className="text-sm text-red-500">{errors.requestType}</p>
+                                )}
+                            </div>
+
+                            {/* Priority */}
+                            <div className="space-y-2">
+                                <Label htmlFor="priority">Priority</Label>
+                                <Select
+                                    value={formData.priority}
+                                    onValueChange={(value) =>
+                                        setFormData((prev) => ({ ...prev, priority: value as TicketPriority }))
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(priorityLabels).map(([value, label]) => (
+                                            <SelectItem key={value} value={value}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
                         {/* Subject */}
                         <div className="space-y-2">
                             <Label htmlFor="subject">
@@ -216,60 +339,7 @@ export default function CreateTicketPage() {
                             )}
                         </div>
 
-                        {/* Category & Priority Row */}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {/* Category */}
-                            <div className="space-y-2">
-                                <Label htmlFor="category">
-                                    Category <span className="text-red-500">*</span>
-                                </Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(value) =>
-                                        setFormData((prev) => ({ ...prev, category: value as TicketCategory }))
-                                    }
-                                >
-                                    <SelectTrigger className={errors.category ? "border-red-500" : ""}>
-                                        <SelectValue placeholder="Select a category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(categoryLabels).map(([value, label]) => (
-                                            <SelectItem key={value} value={value}>
-                                                {label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {errors.category && (
-                                    <p className="text-sm text-red-500">{errors.category}</p>
-                                )}
-                            </div>
 
-                            {/* Priority */}
-                            <div className="space-y-2">
-                                <Label htmlFor="priority">Priority</Label>
-                                <Select
-                                    value={formData.priority}
-                                    onValueChange={(value) =>
-                                        setFormData((prev) => ({ ...prev, priority: value as TicketPriority }))
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(priorityLabels).map(([value, label]) => (
-                                            <SelectItem key={value} value={value}>
-                                                {label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    Select based on urgency and business impact
-                                </p>
-                            </div>
-                        </div>
 
                         {/* Description */}
                         <div className="space-y-2">

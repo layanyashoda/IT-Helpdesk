@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Headphones,
-  LayoutDashboard,
+
   Ticket,
   PlusCircle,
   BookOpen,
@@ -37,9 +37,14 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "/",
-      icon: LayoutDashboard,
+      title: "Analytics",
+      url: "/analytics",
+      icon: BarChart3,
+    },
+    {
+      title: "Create Ticket",
+      url: "/create",
+      icon: PlusCircle,
     },
     {
       title: "Tickets",
@@ -52,19 +57,9 @@ const data = {
       icon: UserCheck,
     },
     {
-      title: "Create Ticket",
-      url: "/create",
-      icon: PlusCircle,
-    },
-    {
       title: "Knowledge Base",
       url: "/knowledge",
       icon: BookOpen,
-    },
-    {
-      title: "Analytics",
-      url: "/analytics",
-      icon: BarChart3,
     },
   ],
   navSecondary: [

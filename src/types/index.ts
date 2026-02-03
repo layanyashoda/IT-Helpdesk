@@ -68,6 +68,8 @@ export interface Ticket {
   status: TicketStatus;
   priority: TicketPriority;
   category: TicketCategory;
+  department?: string;
+  requestType?: 'incident' | 'service_request' | 'problem' | 'change_request';
   createdAt: string;
   updatedAt: string;
   assignedTo?: Agent;
