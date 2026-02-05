@@ -24,6 +24,7 @@ const navigation = [
     { name: "Tickets", href: "/tickets", icon: Ticket },
     { name: "Assigned to Me", href: "/my-tickets", icon: UserCheck },
     { name: "Create Ticket", href: "/create", icon: PlusCircle },
+    { name: "My Approvals", href: "/approvals", icon: UserCheck },
     { name: "Knowledge Base", href: "/knowledge", icon: BookOpen },
 ];
 

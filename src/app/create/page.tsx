@@ -3,12 +3,26 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, Loader2, Paperclip, X, FileIcon, BookOpen } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Paperclip, X, FileIcon, BookOpen, Check, ChevronsUpDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 import {
     Select,
     SelectContent,
@@ -20,9 +34,13 @@ import { addTicket, generateTicketId } from "@/lib/storage";
 import { Ticket, TicketPriority, TicketCategory, Attachment } from "@/types";
 import { categoryLabels, priorityLabels, mockUsers, mockAgents, mockKnowledgeArticles } from "@/lib/mock-data";
 
+// Combined list of potential approvers (Users + Agents) for the dropdown
+const approvers = [...mockUsers, ...mockAgents];
+
 export default function CreateTicketPage() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         subject: "",
@@ -31,6 +49,7 @@ export default function CreateTicketPage() {
         priority: "medium" as TicketPriority,
         department: "",
         requestType: "" as 'incident' | 'service_request' | 'problem' | 'change_request' | "",
+        approverId: "",
     });
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,6 +155,8 @@ export default function CreateTicketPage() {
             updatedAt: new Date().toISOString(),
             createdBy: mockUsers[0], // Current user (mock)
             assignedTo: undefined,
+            approverId: formData.approverId || undefined,
+            approvalStatus: formData.approverId ? 'pending' : 'approved', // Auto-approve if no approver selected (optional logic, or force selection?)
             comments: [],
             attachments: attachments,
         };
@@ -273,6 +294,67 @@ export default function CreateTicketPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
+
+                        {/* Approver Selection */}
+                        <div className="space-y-2">
+                            <Label htmlFor="approver">
+                                Assign Approver (Optional)
+                            </Label>
+                            <Popover open={open} onOpenChange={setOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={open}
+                                        className={cn(
+                                            "w-full justify-between",
+                                            !formData.approverId && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {formData.approverId
+                                            ? approvers.find((approver) => approver.id === formData.approverId)?.name
+                                            : "Select an approver"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search approver..." />
+                                        <CommandList>
+                                            <CommandEmpty>No approver found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {approvers.map((approver) => (
+                                                    <CommandItem
+                                                        value={approver.name}
+                                                        key={approver.id}
+                                                        onSelect={() => {
+                                                            setFormData((prev) => ({
+                                                                ...prev,
+                                                                approverId: prev.approverId === approver.id ? "" : approver.id
+                                                            }))
+                                                            setOpen(false)
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                approver.id === formData.approverId
+                                                                    ? "opacity-100"
+                                                                    : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {approver.name}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <p className="text-xs text-muted-foreground">
+                                If an approver is selected, the ticket will status be 'Pending Approval' until approved.
+                            </p>
                         </div>
 
                         {/* Subject */}

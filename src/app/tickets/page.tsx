@@ -41,8 +41,10 @@ export default function TicketsPage() {
 
     useEffect(() => {
         const storedTickets = getStoredTickets();
-        setTickets(storedTickets);
-        setFilteredTickets(storedTickets);
+        // Filter out pending approvals from the main list
+        const activeTickets = storedTickets.filter(t => t.approvalStatus !== 'pending');
+        setTickets(activeTickets);
+        setFilteredTickets(activeTickets);
     }, []);
 
     useEffect(() => {

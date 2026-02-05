@@ -74,6 +74,8 @@ export interface Ticket {
   updatedAt: string;
   assignedTo?: Agent;
   createdBy: User;
+  approverId?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
   comments: Comment[];
   activities?: ActivityEntry[];
   attachments?: Attachment[];
