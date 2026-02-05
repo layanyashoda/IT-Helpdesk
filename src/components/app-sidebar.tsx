@@ -52,14 +52,21 @@ const data = {
       icon: Ticket,
     },
     {
+      title: "Knowledge Base",
+      url: "/knowledge",
+      icon: BookOpen,
+    },
+  ],
+  navMyWork: [
+    {
       title: "Assigned to Me",
       url: "/my-tickets",
       icon: UserCheck,
     },
     {
-      title: "Knowledge Base",
-      url: "/knowledge",
-      icon: BookOpen,
+      title: "My Approvals",
+      url: "/approvals",
+      icon: UserCheck,
     },
   ],
   navSecondary: [
@@ -100,7 +107,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} label="Platform" />
+        <NavMain items={data.navMyWork} label="My Work" />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
