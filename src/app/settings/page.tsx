@@ -1,5 +1,8 @@
 "use client";
 
+// Force rebuild
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -10,6 +13,24 @@ import { useTheme } from "next-themes";
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    const [notifications, setNotifications] = useState({
+        email: true,
+        push: true,
+        newTicket: true,
+    });
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const handleNotificationChange = (key: keyof typeof notifications) => (checked: boolean) => {
+        setNotifications(prev => ({ ...prev, [key]: checked }));
+    };
+
+    if (!mounted) {
+        return null;
+    }
 
     return (
         <div className="space-y-6">
@@ -69,7 +90,10 @@ export default function SettingsPage() {
                                     Receive email updates for ticket changes.
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch
+                                checked={notifications.email}
+                                onCheckedChange={handleNotificationChange('email')}
+                            />
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
@@ -79,7 +103,10 @@ export default function SettingsPage() {
                                     Receive push notifications in the browser.
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch
+                                checked={notifications.push}
+                                onCheckedChange={handleNotificationChange('push')}
+                            />
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
@@ -89,7 +116,10 @@ export default function SettingsPage() {
                                     Get notified when new tickets are created.
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch
+                                checked={notifications.newTicket}
+                                onCheckedChange={handleNotificationChange('newTicket')}
+                            />
                         </div>
                     </CardContent>
                 </Card>
